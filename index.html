@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional typing practice website for English and Bangla. Improve your typing speed and accuracy.">
+    <meta name="keywords" content="typing practice, typing test, English typing, Bangla typing, WPM, typing speed">
+    <title>TypeMaster - Professional Typing Practice</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo">⌨️ TypeMaster</div>
+            </div>
+            <div class="nav-links">
+                <a href="#" class="nav-link active" data-page="home">Home</a>
+                <a href="#" class="nav-link" data-page="practice">Practice</a>
+                <a href="#" class="nav-link" data-page="test">Test</a>
+                <a href="#" class="nav-link" data-page="stats">Statistics</a>
+                <a href="admin.html" class="nav-link">Admin</a>
+            </div>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle">🌓</button>
+                <button class="btn-secondary" id="languageToggle">EN</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        
+        <!-- Home Page -->
+        <section id="homePage" class="page active">
+            <div class="hero-section">
+                <h1 class="hero-title">Master Your Typing Skills</h1>
+                <p class="hero-subtitle">Practice English & Bangla typing with real-time feedback and detailed statistics</p>
+                
+                <div class="quick-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="bestWPM">0</div>
+                        <div class="stat-label">Best WPM</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalTests">0</div>
+                        <div class="stat-label">Tests Completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avgAccuracy">0%</div>
+                        <div class="stat-label">Avg Accuracy</div>
+                    </div>
+                </div>
+
+                <div class="quick-start">
+                    <button class="btn-primary btn-large" id="quickStartBtn">
+                        Start Typing Test
+                    </button>
+                    <div class="quick-options">
+                        <select id="quickLanguage" class="select-input">
+                            <option value="en">English</option>
+                            <option value="bn">বাংলা</option>
+                        </select>
+                        <select id="quickDifficulty" class="select-input">
+                            <option value="easy">Easy</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Practice/Test Page -->
+        <section id="practicePage" class="page">
+            <div class="config-panel">
+                <div class="config-group">
+                    <label>Language</label>
+                    <div class="btn-group">
+                        <button class="config-btn active" data-config="language" data-value="en">English</button>
+                        <button class="config-btn" data-config="language" data-value="bn">বাংলা</button>
+                    </div>
+                </div>
+
+                <div class="config-group">
+                    <label>Difficulty</label>
+                    <div class="btn-group">
+                        <button class="config-btn active" data-config="difficulty" data-value="easy">Easy</button>
+                        <button class="config-btn" data-config="difficulty" data-value="medium">Medium</button>
+                        <button class="config-btn" data-config="difficulty" data-value="hard">Hard</button>
+                    </div>
+                </div>
+
+                <div class="config-group">
+                    <label>Content Type</label>
+                    <div class="btn-group">
+                        <button class="config-btn active" data-config="type" data-value="word">Words</button>
+                        <button class="config-btn" data-config="type" data-value="sentence">Sentences</button>
+                        <button class="config-btn" data-config="type" data-value="paragraph">Paragraph</button>
+                    </div>
+                </div>
+
+                <div class="config-group">
+                    <label>Duration</label>
+                    <div class="btn-group">
+                        <button class="config-btn" data-config="time" data-value="60">1 min</button>
+                        <button class="config-btn active" data-config="time" data-value="120">2 min</button>
+                        <button class="config-btn" data-config="time" data-value="300">5 min</button>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="startTestBtn">Start Test</button>
+            </div>
+
+            <div class="typing-area" id="typingArea" style="display: none;">
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-label">Time</span>
+                        <span class="stat-value" id="timer">2:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">WPM</span>
+                        <span class="stat-value" id="liveWPM">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Accuracy</span>
+                        <span class="stat-value" id="liveAccuracy">100%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Errors</span>
+                        <span class="stat-value" id="liveErrors">0</span>
+                    </div>
+                </div>
+
+                <div class="text-display" id="textDisplay">
+                    <div class="loading-state" id="loadingState">
+                        <div class="spinner"></div>
+                        <p>Loading content...</p>
+                    </div>
+                    <div class="text-content" id="textContent"></div>
+                </div>
+
+                <input type="text" 
+                       class="typing-input" 
+                       id="typingInput" 
+                       placeholder="Start typing here..." 
+                       autocomplete="off" 
+                       autocorrect="off" 
+                       autocapitalize="off" 
+                       spellcheck="false">
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="test-controls">
+                    <button class="btn-secondary" id="restartBtn"> Restart</button>
+                    <button class="btn-secondary" id="stopBtn">Stop</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Page -->
+        <section id="resultsPage" class="page">
+            <div class="results-container">
+                <h2>Test Results</h2>
+                
+                <div class="results-grid">
+                    <div class="result-card primary">
+                        <div class="result-value" id="resultWPM">0</div>
+                        <div class="result-label">WPM</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value" id="resultCPM">0</div>
+                        <div class="result-label">CPM</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value" id="resultAccuracy">0%</div>
+                        <div class="result-label">Accuracy</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-value" id="resultConsistency">0%</div>
+                        <div class="result-label">Consistency</div>
+                    </div>
+                </div>
+
+                <div class="detailed-stats">
+                    <div class="stat-row">
+                        <span>Characters</span>
+                        <div class="stat-breakdown">
+                            <span class="correct" id="resultCorrectChars">0</span>
+                            <span class="incorrect" id="resultIncorrectChars">0</span>
+                            <span class="total" id="resultTotalChars">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span>Words</span>
+                        <div class="stat-breakdown">
+                            <span class="correct" id="resultCorrectWords">0</span>
+                            <span class="incorrect" id="resultIncorrectWords">0</span>
+                            <span class="total" id="resultTotalWords">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span>Duration</span>
+                        <span id="resultDuration">0:00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Language</span>
+                        <span id="resultLanguage">-</span>
+                    </div>
+                </div>
+
+                <div class="results-actions">
+                    <button class="btn-primary" id="retryBtn"> Try Again</button>
+                    <button class="btn-secondary" id="newTestBtn">New Test</button>
+                    <button class="btn-secondary" id="saveResultBtn">Save Result</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Statistics Page -->
+        <section id="statsPage" class="page">
+            <div class="stats-header">
+                <h2>Your Statistics</h2>
+                <button class="btn-secondary" id="clearStatsBtn">Clear Data</button>
+            </div>
+
+            <div class="stats-overview">
+                <div class="stat-box">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-info">
+                        <div class="stat-number" id="statBestWPM">0</div>
+                        <div class="stat-title">Best WPM</div>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-info">
+                        <div class="stat-number" id="statAvgWPM">0</div>
+                        <div class="stat-title">Average WPM</div>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon"></div>
+                    <div class="stat-info">
+                        <div class="stat-number" id="statBestAccuracy">0%</div>
+                        <div class="stat-title">Best Accuracy</div>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-info">
+                        <div class="stat-number" id="statTotalTime">0m</div>
+                        <div class="stat-title">Total Time</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-chart-container">
+                <canvas id="progressChart"></canvas>
+            </div>
+
+            <div class="recent-tests">
+                <h3>Recent Tests</h3>
+                <div id="recentTestsList" class="tests-list">
+                    <p class="empty-state">No tests completed yet</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 TypeMaster. Practice makes perfect.</p>
+            <div class="footer-links">
+                <a href="#" id="exportDataBtn">Export Data</a>
+                <a href="#" id="importDataBtn">Import Data</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
