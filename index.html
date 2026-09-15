@@ -3,287 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Modern English & Bangla Typing Practice with real-time analytics">
-    <title>TypeMaster Pro | Modern Typing Practice</title>
-    
-    <!-- Modern Fonts -->
+    <title>TypeMaster - Modern Typing Practice</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Animated Background Elements -->
-    <div class="bg-gradient-orb orb-1"></div>
-    <div class="bg-gradient-orb orb-2"></div>
-
-    <!-- Navigation -->
-    <nav class="navbar glass">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <div class="logo">
-                    <span class="logo-icon">⌨️</span>
-                    <span class="logo-text">TypeMaster<span class="highlight">Pro</span></span>
-                </div>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">⌨️</div>
+                <span class="logo-text">TypeMaster</span>
             </div>
-            <div class="nav-links">
-                <a href="#" class="nav-link active" data-page="home">Home</a>
-                <a href="#" class="nav-link" data-page="practice">Practice</a>
-                <a href="#" class="nav-link" data-page="stats">Statistics</a>
-                <a href="admin.html" class="nav-link">Admin</a>
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-page="home">Home</button>
+                <button class="nav-btn" data-page="practice">Practice</button>
+                <button class="nav-btn" data-page="stats">Statistics</button>
+                <button class="nav-btn" onclick="window.location.href='admin.html'">Admin</button>
+            </nav>
+            <div class="header-actions">
+                <button class="icon-btn theme-toggle" id="themeToggle">🌓</button>
+                <button class="icon-btn lang-toggle" id="langToggle">EN/BN</button>
             </div>
-            <div class="nav-actions">
-                <button class="icon-btn theme-toggle" id="themeToggle" title="Toggle Theme">🌓</button>
-            </div>
-        </div>
-    </nav>
+        </header>
 
-    <main class="main-container">
-        
-        <!-- Home Page -->
-        <section id="homePage" class="page active">
-            <div class="hero-section animate-fade-in-up">
-                <div class="hero-badge">🚀 Version 2.0 Now Live</div>
-                <h1 class="hero-title">Master Your <span class="gradient-text">Typing Skills</span></h1>
-                <p class="hero-subtitle">Practice English & Bangla typing with real-time feedback, beautiful analytics, and AI-driven content.</p>
-                
-                <div class="quick-stats">
-                    <div class="stat-card glass animate-slide-up" style="animation-delay: 0.1s">
-                        <div class="stat-icon">🏆</div>
-                        <div class="stat-value counter" data-target="0" id="bestWPM">0</div>
-                        <div class="stat-label">Best WPM</div>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Home Page -->
+            <section id="homePage" class="page active">
+                <div class="hero">
+                    <h1 class="hero-title">Master Your <span class="gradient">Typing Skills</span></h1>
+                    <p class="hero-subtitle">Practice English & Bangla typing with real-time feedback</p>
+                    
+                    <div class="quick-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="homeBestWPM">0</div>
+                            <div class="stat-label">Best WPM</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="homeTotalTests">0</div>
+                            <div class="stat-label">Tests Done</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="homeAvgAcc">0%</div>
+                            <div class="stat-label">Avg Accuracy</div>
+                        </div>
                     </div>
-                    <div class="stat-card glass animate-slide-up" style="animation-delay: 0.2s">
-                        <div class="stat-icon">📝</div>
-                        <div class="stat-value counter" data-target="0" id="totalTests">0</div>
-                        <div class="stat-label">Tests Done</div>
-                    </div>
-                    <div class="stat-card glass animate-slide-up" style="animation-delay: 0.3s">
-                        <div class="stat-icon">🎯</div>
-                        <div class="stat-value counter" data-target="0" id="avgAccuracy">0</div>
-                        <div class="stat-label">Avg Accuracy</div>
-                    </div>
-                </div>
 
-                <div class="quick-start animate-slide-up" style="animation-delay: 0.4s">
-                    <button class="btn-primary btn-large glow-effect" id="quickStartBtn">
+                    <button class="btn-primary btn-large" id="quickStart">
                         <span>Start Quick Test</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
                     </button>
-                    <div class="quick-options glass">
-                        <select id="quickLanguage" class="select-input">
-                            <option value="en">🇬🇧 English</option>
-                            <option value="bn">🇧🇩 বাংলা</option>
-                        </select>
-                        <select id="quickDifficulty" class="select-input">
-                            <option value="easy">Easy</option>
-                            <option value="medium" selected>Medium</option>
-                            <option value="hard">Hard</option>
-                        </select>
-                    </div
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- Practice Page -->
-        <section id="practicePage" class="page">
-            <div class="config-panel glass animate-fade-in">
-                <div class="config-grid">
+            <!-- Practice Page -->
+            <section id="practicePage" class="page">
+                <div class="config-bar">
                     <div class="config-group">
-                        <label>Language</label>
-                        <div class="btn-group">
-                            <button class="config-btn active" data-config="language" data-value="en">English</button>
-                            <button class="config-btn" data-config="language" data-value="bn">বাংলা</button>
-                        </div>
+                        <button class="config-btn active" data-config="language" data-value="en">English</button>
+                        <button class="config-btn" data-config="language" data-value="bn">বাংলা</button>
                     </div>
                     <div class="config-group">
-                        <label>Difficulty</label>
-                        <div class="btn-group">
-                            <button class="config-btn active" data-config="difficulty" data-value="easy">Easy</button>
-                            <button class="config-btn" data-config="difficulty" data-value="medium">Medium</button>
-                            <button class="config-btn" data-config="difficulty" data-value="hard">Hard</button>
-                        </div>
+                        <button class="config-btn active" data-config="time" data-value="30">30s</button>
+                        <button class="config-btn" data-config="time" data-value="60">60s</button>
+                        <button class="config-btn" data-config="time" data-value="120">120s</button>
                     </div>
                     <div class="config-group">
-                        <label>Content Type</label>
-                        <div class="btn-group">
-                            <button class="config-btn active" data-config="type" data-value="word">Words</button>
-                            <button class="config-btn" data-config="type" data-value="sentence">Sentences</button>
-                            <button class="config-btn" data-config="type" data-value="paragraph">Paragraph</button>
+                        <button class="config-btn active" data-config="type" data-value="word">Words</button>
+                        <button class="config-btn" data-config="type" data-value="sentence">Sentences</button>
+                    </div>
+                </div>
+
+                <div class="typing-container" id="typingContainer">
+                    <div class="focus-prompt" id="focusPrompt">
+                        <div class="cursor">|</div>
+                        <span>Click here or press any key to focus</span>
+                    </div>
+
+                    <div class="typing-wrapper" id="typingWrapper" style="display: none;">
+                        <div class="live-stats">
+                            <div class="live-stat">
+                                <span class="live-label">time</span>
+                                <span class="live-value" id="liveTimer">30</span>
+                            </div>
+                            <div class="live-stat">
+                                <span class="live-label">wpm</span>
+                                <span class="live-value" id="liveWPM">0</span>
+                            </div>
+                            <div class="live-stat">
+                                <span class="live-label">acc</span>
+                                <span class="live-value" id="liveAcc">100%</span>
+                            </div>
+                        </div>
+
+                        <div class="words-display" id="wordsDisplay"></div>
+                        
+                        <input type="text" 
+                               class="typing-input" 
+                               id="typingInput" 
+                               autocomplete="off" 
+                               autocorrect="off" 
+                               autocapitalize="off" 
+                               spellcheck="false">
+                        
+                        <div class="restart-hint">
+                            <kbd>tab</kbd> + <kbd>enter</kbd> - restart test
                         </div>
                     </div>
-                    <div class="config-group">
-                        <label>Duration</label>
-                        <div class="btn-group">
-                            <button class="config-btn" data-config="time" data-value="60">1m</button>
-                            <button class="config-btn active" data-config="time" data-value="120">2m</button>
-                            <button class="config-btn" data-config="time" data-value="300">5m</button>
+                </div>
+            </section>
+
+            <!-- Results Page -->
+            <section id="resultsPage" class="page">
+                <div class="results-wrapper">
+                    <div class="results-header">
+                        <h2>Test Results</h2>
+                        <button class="btn-secondary" onclick="app.restartTest()">↻ Restart</button>
+                    </div>
+
+                    <div class="results-grid">
+                        <div class="result-main">
+                            <div class="result-item">
+                                <div class="result-label">wpm</div>
+                                <div class="result-value" id="resultWPM">0</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-label">acc</div>
+                                <div class="result-value" id="resultAcc">0%</div>
+                            </div>
+                        </div>
+
+                        <div class="result-chart">
+                            <canvas id="wpmChart"></canvas>
                         </div>
                     </div>
-                </div>
-                <button class="btn-primary btn-large glow-effect" id="startTestBtn" style="width: 100%; margin-top: 1.5rem;">
-                    Start Typing Test
-                </button>
-            </div>
 
-            <div class="typing-area glass" id="typingArea" style="display: none;">
-                <div class="stats-bar glass">
-                    <div class="stat-item">
-                        <span class="stat-label">Time</span>
-                        <span class="stat-value" id="timer">2:00</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">WPM</span>
-                        <span class="stat-value highlight" id="liveWPM">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Accuracy</span>
-                        <span class="stat-value highlight" id="liveAccuracy">100%</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Errors</span>
-                        <span class="stat-value error" id="liveErrors">0</span>
-                    </div
-                </div>
-
-                <div class="text-display" id="textDisplay">
-                    <div class="loading-state" id="loadingState">
-                        <div class="modern-spinner"></div>
-                        <p>Loading content...</p>
-                    </div>
-                    <div class="text-content" id="textContent"></div>
-                </div>
-
-                <input type="text" class="typing-input" id="typingInput" placeholder="Start typing here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-                
-                <div class="progress-bar">
-                    <div class="progress-fill animated-gradient" id="progressFill"></div>
-                </div>
-
-                <div class="test-controls">
-                    <button class="btn-secondary" id="restartBtn">↻ Restart</button>
-                    <button class="btn-secondary" id="stopBtn">■ Stop</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Results Page -->
-        <section id="resultsPage" class="page">
-            <div class="results-container animate-fade-in-up">
-                <h2 class="gradient-text">Test Results</h2>
-                
-                <div class="results-grid">
-                    <div class="result-card primary glass animate-pop-in" style="animation-delay: 0.1s">
-                        <div class="result-value counter" data-target="0" id="resultWPM">0</div>
-                        <div class="result-label">WPM</div>
-                    </div>
-                    <div class="result-card glass animate-pop-in" style="animation-delay: 0.2s">
-                        <div class="result-value counter" data-target="0" id="resultCPM">0</div>
-                        <div class="result-label">CPM</div>
-                    </div>
-                    <div class="result-card glass animate-pop-in" style="animation-delay: 0.3s">
-                        <div class="result-value counter" data-target="0" id="resultAccuracy">0</div>
-                        <div class="result-label">Accuracy %</div>
-                    </div>
-                    <div class="result-card glass animate-pop-in" style="animation-delay: 0.4s">
-                        <div class="result-value counter" data-target="0" id="resultConsistency">0</div>
-                        <div class="result-label">Consistency %</div>
-                    </div>
-                </div>
-
-                <div class="detailed-stats glass animate-slide-up" style="animation-delay: 0.5s">
-                    <div class="stat-row">
-                        <span>Characters</span>
-                        <div class="stat-breakdown">
-                            <span class="correct" id="resultCorrectChars">0</span>
-                            <span class="incorrect" id="resultIncorrectChars">0</span>
-                            <span class="total" id="resultTotalChars">0</span>
+                    <div class="results-details">
+                        <div class="detail-group">
+                            <div class="detail-item">
+                                <span class="detail-label">test type</span>
+                                <span class="detail-value" id="resultType">time 60</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">raw</span>
+                                <span class="detail-value" id="resultRaw">0</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">characters</span>
+                                <span class="detail-value" id="resultChars">0/0/0/0</span>
+                            </div>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-item">
+                                <span class="detail-label">consistency</span>
+                                <span class="detail-value" id="resultCons">0%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">time</span>
+                                <span class="detail-value" id="resultTime">0:00</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="stat-row">
-                        <span>Words</span>
-                        <div class="stat-breakdown">
-                            <span class="correct" id="resultCorrectWords">0</span>
-                            <span class="incorrect" id="resultIncorrectWords">0</span>
-                            <span class="total" id="resultTotalWords">0</span>
+
+                    <div class="results-actions">
+                        <button class="btn-primary" onclick="app.newTest()">New Test</button>
+                        <button class="btn-secondary" onclick="app.saveResult()">Save Result</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Statistics Page -->
+            <section id="statsPage" class="page">
+                <div class="stats-wrapper">
+                    <h2>Your Statistics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-box-value" id="statBestWPM">0</div>
+                            <div class="stat-box-label">Best WPM</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-value" id="statAvgWPM">0</div>
+                            <div class="stat-box-label">Average WPM</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-value" id="statBestAcc">0%</div>
+                            <div class="stat-box-label">Best Accuracy</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-value" id="statTotalTime">0m</div>
+                            <div class="stat-box-label">Total Time</div>
                         </div>
                     </div>
-                    <div class="stat-row">
-                        <span>Duration</span>
-                        <span id="resultDuration">0:00</span>
-                    </div>
+                    <div class="recent-tests" id="recentTests"></div>
                 </div>
+            </section>
+        </main>
 
-                <div class="results-actions animate-slide-up" style="animation-delay: 0.6s">
-                    <button class="btn-primary glow-effect" id="retryBtn">↻ Try Again</button>
-                    <button class="btn-secondary" id="newTestBtn">New Test</button>
-                    <button class="btn-secondary" id="saveResultBtn">💾 Save Result</button>
-                </div>
-            </div>
-        </section>
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
 
-        <!-- Statistics Page -->
-        <section id="statsPage" class="page">
-            <div class="stats-header animate-fade-in">
-                <h2>Your Progress</h2>
-                <button class="btn-secondary" id="clearStatsBtn">Clear Data</button>
-            </div>
-
-            <div class="stats-overview">
-                <div class="stat-box glass animate-slide-up" style="animation-delay: 0.1s">
-                    <div class="stat-icon">🏆</div>
-                    <div class="stat-info">
-                        <div class="stat-number counter" data-target="0" id="statBestWPM">0</div>
-                        <div class="stat-title">Best WPM</div>
-                    </div>
-                </div>
-                <div class="stat-box glass animate-slide-up" style="animation-delay: 0.2s">
-                    <div class="stat-icon">📊</div>
-                    <div class="stat-info">
-                        <div class="stat-number counter" data-target="0" id="statAvgWPM">0</div>
-                        <div class="stat-title">Average WPM</div>
-                    </div>
-                </div>
-                <div class="stat-box glass animate-slide-up" style="animation-delay: 0.3s">
-                    <div class="stat-icon">🎯</div>
-                    <div class="stat-info">
-                        <div class="stat-number counter" data-target="0" id="statBestAccuracy">0</div>
-                        <div class="stat-title">Best Accuracy</div>
-                    </div>
-                </div>
-                <div class="stat-box glass animate-slide-up" style="animation-delay: 0.4s">
-                    <div class="stat-icon">⏱️</div>
-                    <div class="stat-info">
-                        <div class="stat-number" id="statTotalTime">0m</div>
-                        <div class="stat-title">Total Time</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="recent-tests glass animate-slide-up" style="animation-delay: 0.5s">
-                <h3>Recent Tests</h3>
-                <div id="recentTestsList" class="tests-list">
-                    <p class="empty-state">No tests completed yet. Start typing!</p>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Toast Container -->
-    <div id="toastContainer" class="toast-container"></div>
-
-    <footer class="footer glass">
-        <div class="footer-content">
-            <p>&copy; 2024 TypeMaster Pro. Built with precision.</p>
-            <div class="footer-links">
-                <a href="#" id="exportDataBtn">Export Data</a>
-                <a href="#" id="importDataBtn">Import Data</a>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Modern ES Module Script -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
