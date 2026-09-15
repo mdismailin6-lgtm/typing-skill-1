@@ -3,398 +3,419 @@ import { collection, query, where, limit, getDocs } from "https://www.gstatic.co
 
 class TypingApp {
     constructor() {
-        this.currentPage = 'home';
         this.testActive = false;
-        this.currentText = '';
-        this.userInput = '';
+        this.currentTime = 30;
+        this.timeLeft = 30;
+        this.timer = null;
+        this.words = [];
+        this.currentWordIndex = 0;
         this.correctChars = 0;
         this.incorrectChars = 0;
-        this.timerInterval = null;
-        this.timeRemaining = 120;
-        this.totalTime = 120;
-        
-        this.config = { language: 'en', difficulty: 'medium', type: 'sentence', time: 120 };
+        this.wpmHistory = [];
+        this.config = { language: 'en', time: 30, type: 'word' };
         this.stats = this.loadStats();
         
         this.init();
     }
-    
+
     init() {
         this.setupEventListeners();
-        this.setupNavigation();
-        this.setupTheme();
-        this.animateCounters();
-        this.updateQuickStats();
+        this.updateHomeStats();
     }
 
-    // ... [setupEventListeners, setupNavigation, setupTheme same as before but cleaner] ...
     setupEventListeners() {
-        document.querySelectorAll('.config-btn').forEach(btn => {
+        // Navigation
+        document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const config = e.target.dataset.config;
-                const value = e.target.dataset.value;
-                this.updateConfig(config, value);
-                e.target.parentElement.querySelectorAll('.config-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
+                this.navigateTo(e.target.dataset.page);
             });
         });
 
-        document.getElementById('quickStartBtn').addEventListener('click', () => {
-            this.updateConfig('language', document.getElementById('quickLanguage').value);
-            this.updateConfig('difficulty', document.getElementById('quickDifficulty').value);
+        // Config buttons
+        document.querySelectorAll('.config-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const group = e.target.closest('.config-group');
+                group.querySelectorAll('.config-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                const config = e.target.dataset.config;
+                const value = e.target.dataset.value;
+                this.config[config] = config === 'time' ? parseInt(value) : value;
+                
+                if (config === 'time') {
+                    this.currentTime = parseInt(value);
+                    this.timeLeft = parseInt(value);
+                }
+            });
+        });
+
+        // Quick start
+        document.getElementById('quickStart').addEventListener('click', () => {
             this.navigateTo('practice');
             setTimeout(() => this.startTest(), 300);
         });
 
-        document.getElementById('startTestBtn').addEventListener('click', () => this.startTest());
-        document.getElementById('typingInput').addEventListener('input', (e) => this.handleInput(e));
-        document.getElementById('typingInput').addEventListener('paste', (e) => {
-            e.preventDefault();
-            this.showToast('Pasting is not allowed', 'warning');
-        });
-        document.getElementById('restartBtn').addEventListener('click', () => this.restartTest());
-        document.getElementById('stopBtn').addEventListener('click', () => this.endTest());
-        document.getElementById('retryBtn').addEventListener('click', () => { this.navigateTo('practice'); setTimeout(() => this.startTest(), 100); });
-        document.getElementById('newTestBtn').addEventListener('click', () => this.navigateTo('practice'));
-        document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
-        document.getElementById('clearStatsBtn').addEventListener('click', () => this.clearStats());
-    }
+        // Focus prompt
+        document.getElementById('focusPrompt').addEventListener('click', () => this.startTest());
 
-    setupNavigation() {
-        document.querySelectorAll('.nav-link[data-page]').forEach(link => {
-            link.addEventListener('click', (e) => {
+        // Typing input
+        const input = document.getElementById('typingInput');
+        input.addEventListener('input', (e) => this.handleInput(e));
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab' && e.shiftKey) {
                 e.preventDefault();
-                this.navigateTo(e.target.dataset.page);
-            });
+                this.endTest();
+            }
+            if (e.key === 'Enter' && e.shiftKey) {
+                e.preventDefault();
+                this.restartTest();
+            }
         });
-    }
 
-    setupTheme() {
-        if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
-    }
+        // Theme toggle
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.body.classList.toggle('light-mode');
+        });
 
-    toggleTheme() {
-        document.body.classList.toggle('dark-mode');
-        localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        // Language toggle
+        document.getElementById('langToggle').addEventListener('click', () => {
+            this.config.language = this.config.language === 'en' ? 'bn' : 'en';
+            this.showToast(`Language: ${this.config.language === 'en' ? 'English' : 'বাংলা'}`, 'success');
+        });
     }
 
     navigateTo(page) {
         document.querySelectorAll('.page').forEach(p => {
             p.classList.remove('active');
-            p.style.display = 'none'; // Ensure clean state for animation
+            setTimeout(() => {
+                if (!p.classList.contains('active')) p.style.display = 'none';
+            }, 300);
         });
         
         const target = document.getElementById(page + 'Page');
         target.style.display = 'block';
-        // Trigger reflow to restart animation
-        void target.offsetWidth; 
-        target.classList.add('active');
+        setTimeout(() => target.classList.add('active'), 10);
         
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.classList.toggle('active', link.dataset.page === page);
-        });
-        
-        this.currentPage = page;
         if (page === 'stats') this.loadStatistics();
-        if (page === 'home') this.animateCounters();
-    }
-
-    updateConfig(key, value) {
-        this.config[key] = value;
-        if (key === 'time') {
-            this.timeRemaining = parseInt(value);
-            this.totalTime = parseInt(value);
-        }
     }
 
     async startTest() {
+        document.getElementById('focusPrompt').style.display = 'none';
+        document.getElementById('typingWrapper').style.display = 'block';
+        
         this.testActive = true;
+        this.currentWordIndex = 0;
         this.correctChars = 0;
         this.incorrectChars = 0;
-        this.userInput = '';
-        this.timeRemaining = this.totalTime;
+        this.wpmHistory = [];
+        this.timeLeft = this.currentTime;
         
-        document.querySelector('.config-panel').style.display = 'none';
-        document.getElementById('typingArea').style.display = 'block';
-        document.getElementById('typingArea').classList.add('animate-fade-in');
-        
-        await this.loadContent();
-        this.startTimer();
+        await this.loadWords();
+        this.displayWords();
         document.getElementById('typingInput').value = '';
         document.getElementById('typingInput').focus();
-        this.showToast('Test started! Focus and type.', 'success');
+        
+        this.startTimer();
+        this.showToast('Test started!', 'success');
     }
 
-    async loadContent() {
-        const loadingState = document.getElementById('loadingState');
-        const textContent = document.getElementById('textContent');
-        loadingState.style.display = 'flex';
-        textContent.innerHTML = '';
-
+    async loadWords() {
         try {
-            let content = [];
             const q = query(
-                collection(db, COLLECTIONS.TYPING_CONTENT),
+                collection(db, this.config.type === 'word' ? COLLECTIONS.TYPING_WORDS : COLLECTIONS.TYPING_SENTENCES),
                 where('language', '==', this.config.language),
-                where('difficulty', '==', this.config.difficulty),
                 where('active', '==', true),
-                limit(50)
+                limit(100)
             );
             
             const snapshot = await getDocs(q);
-            if (!snapshot.empty) {
-                content = snapshot.docs.map(doc => doc.data().text || doc.data().word);
-            }
-
-            if (content.length === 0) content = this.getLocalFallback();
             
-            this.currentText = this.config.type === 'word' ? content.join(' ') : content.slice(0, 5).join(' ');
-            this.displayText();
+            if (snapshot.empty) {
+                this.words = this.getFallbackWords();
+            } else {
+                this.words = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return data.text || data.word;
+                });
+            }
         } catch (error) {
-            console.error('Firestore error:', error);
-            this.currentText = this.getLocalFallback().join(' ');
-            this.displayText();
-        } finally {
-            loadingState.style.display = 'none';
+            console.error('Error loading words:', error);
+            this.words = this.getFallbackWords();
         }
     }
 
-    getLocalFallback() {
-        const en = ["The quick brown fox jumps over the lazy dog.", "Practice makes perfect in typing.", "Technology is changing the world rapidly."];
-        const bn = ["আমি প্রতিদিন টাইপিং অনুশীলন করি।", "প্র্যাকটিস করলেই পারফেক্ট হওয়া যায়।", "প্রযুক্তি আমাদের জীবনকে সহজ করেছে।"];
+    getFallbackWords() {
+        const en = ['the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at'];
+        const bn = ['আমি', 'তুমি', 'সে', 'আমরা', 'তোমরা', 'তারা', 'এই', 'ওই', 'যে', 'কি', 'না', 'হয়', 'ছিল', 'হবে'];
         return this.config.language === 'en' ? en : bn;
     }
 
-    displayText() {
-        const textContent = document.getElementById('textContent');
-        textContent.innerHTML = '';
-        this.currentText.split('').forEach((char, index) => {
+    displayWords() {
+        const container = document.getElementById('wordsDisplay');
+        container.innerHTML = '';
+        
+        const wordsToShow = this.words.slice(0, 50);
+        wordsToShow.forEach((word, index) => {
             const span = document.createElement('span');
-            span.className = 'char';
-            span.textContent = char;
+            span.className = 'word';
+            span.textContent = word;
             span.dataset.index = index;
-            textContent.appendChild(span);
+            container.appendChild(span);
         });
-        if (textContent.firstChild) textContent.firstChild.classList.add('current');
+        
+        if (container.firstChild) {
+            container.firstChild.classList.add('current');
+        }
     }
 
     startTimer() {
-        this.updateTimerDisplay();
-        this.timerInterval = setInterval(() => {
-            this.timeRemaining--;
-            this.updateTimerDisplay();
-            if (this.timeRemaining <= 0) this.endTest();
+        this.updateLiveStats();
+        this.timer = setInterval(() => {
+            this.timeLeft--;
+            this.updateLiveStats();
+            
+            if (this.timeLeft <= 0) {
+                this.endTest();
+            }
         }, 1000);
-    }
-
-    updateTimerDisplay() {
-        const m = Math.floor(this.timeRemaining / 60);
-        const s = this.timeRemaining % 60;
-        document.getElementById('timer').textContent = `${m}:${s.toString().padStart(2, '0')}`;
     }
 
     handleInput(e) {
         if (!this.testActive) return;
+        
         const input = e.target.value;
-        this.userInput = input;
-        const textChars = document.querySelectorAll('.char');
-
-        this.correctChars = 0;
-        this.incorrectChars = 0;
-
-        textChars.forEach((char, index) => {
-            char.classList.remove('correct', 'incorrect', 'current');
-            if (index < input.length) {
-                if (input[index] === char.textContent) {
-                    char.classList.add('correct');
-                    this.correctChars++;
-                } else {
-                    char.classList.add('incorrect');
-                    this.incorrectChars++;
-                }
+        const words = document.querySelectorAll('.word');
+        
+        if (input.endsWith(' ')) {
+            const currentWord = words[this.currentWordIndex];
+            const typedWord = input.trim();
+            
+            if (typedWord === this.words[this.currentWordIndex]) {
+                currentWord.classList.add('correct');
+                this.correctChars += typedWord.length + 1;
+            } else {
+                currentWord.classList.add('incorrect');
+                this.incorrectChars += typedWord.length;
             }
-            if (index === input.length) char.classList.add('current');
-        });
-
+            
+            currentWord.classList.remove('current');
+            this.currentWordIndex++;
+            
+            if (this.currentWordIndex < words.length) {
+                words[this.currentWordIndex].classList.add('current');
+                words[this.currentWordIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            
+            e.target.value = '';
+            
+            if (this.currentWordIndex >= this.words.length) {
+                this.endTest();
+            }
+        }
+        
         this.updateLiveStats();
-        if (input.length >= this.currentText.length) this.endTest();
     }
 
     updateLiveStats() {
-        const timeElapsed = Math.max((this.totalTime - this.timeRemaining) / 60, 0.016); // min 1 sec
-        const wordsTyped = this.userInput.trim().split(/\s+/).filter(w => w).length;
-        const wpm = Math.round(wordsTyped / timeElapsed);
+        const timeElapsed = (this.currentTime - this.timeLeft) / 60;
+        const wordsTyped = this.currentWordIndex;
+        const wpm = timeElapsed > 0 ? Math.round(wordsTyped / timeElapsed) : 0;
         const totalChars = this.correctChars + this.incorrectChars;
-        const accuracy = totalChars > 0 ? Math.round((this.correctChars / totalChars) * 100) : 100;
-
-        document.getElementById('liveWPM').textContent = wpm;
-        document.getElementById('liveAccuracy').textContent = accuracy + '%';
-        document.getElementById('liveErrors').textContent = this.incorrectChars;
+        const acc = totalChars > 0 ? Math.round((this.correctChars / totalChars) * 100) : 100;
         
-        const progress = (this.userInput.length / this.currentText.length) * 100;
-        document.getElementById('progressFill').style.width = Math.min(progress, 100) + '%';
+        document.getElementById('liveTimer').textContent = this.timeLeft;
+        document.getElementById('liveWPM').textContent = wpm;
+        document.getElementById('liveAcc').textContent = acc + '%';
+        
+        if (timeElapsed > 0) {
+            this.wpmHistory.push(wpm);
+        }
     }
 
     endTest() {
         this.testActive = false;
-        clearInterval(this.timerInterval);
+        clearInterval(this.timer);
+        
         const results = this.calculateResults();
+        this.showResults(results);
         this.addToStats(results);
-        this.displayResults(results);
         this.navigateTo('results');
     }
 
     calculateResults() {
-        const duration = Math.max((this.totalTime - this.timeRemaining) / 60, 0.016);
-        const wordsTyped = this.userInput.trim().split(/\s+/).filter(w => w).length;
+        const timeElapsed = (this.currentTime - this.timeLeft) / 60 || 0.016;
+        const wordsTyped = this.currentWordIndex;
         const totalChars = this.correctChars + this.incorrectChars;
         
         return {
-            wpm: Math.round(wordsTyped / duration),
-            cpm: Math.round(totalChars / duration),
-            accuracy: totalChars > 0 ? Math.round((this.correctChars / totalChars) * 100) : 100,
+            wpm: Math.round(wordsTyped / timeElapsed),
+            raw: Math.round((this.correctChars + this.incorrectChars) / 5 / timeElapsed),
+            acc: totalChars > 0 ? Math.round((this.correctChars / totalChars) * 100) : 100,
             correctChars: this.correctChars,
             incorrectChars: this.incorrectChars,
-            totalChars,
-            correctWords: Math.round(this.correctChars / 5),
-            incorrectWords: Math.round(this.incorrectChars / 5),
-            totalWords: wordsTyped,
-            duration: this.totalTime - this.timeRemaining,
+            totalChars: totalChars,
+            consistency: this.calculateConsistency(),
+            time: this.currentTime - this.timeLeft,
             language: this.config.language,
             timestamp: new Date().toISOString()
         };
     }
 
-    displayResults(r) {
-        document.getElementById('resultWPM').textContent = r.wpm;
-        document.getElementById('resultCPM').textContent = r.cpm;
-        document.getElementById('resultAccuracy').textContent = r.accuracy;
-        document.getElementById('resultConsistency').textContent = Math.min(100, r.accuracy + 5);
-        
-        document.getElementById('resultCorrectChars').textContent = r.correctChars;
-        document.getElementById('resultIncorrectChars').textContent = r.incorrectChars;
-        document.getElementById('resultTotalChars').textContent = r.totalChars;
-        
-        document.getElementById('resultCorrectWords').textContent = r.correctWords;
-        document.getElementById('resultIncorrectWords').textContent = r.incorrectWords;
-        document.getElementById('resultTotalWords').textContent = r.totalWords;
-        
-        const m = Math.floor(r.duration / 60);
-        const s = r.duration % 60;
-        document.getElementById('resultDuration').textContent = `${m}:${s.toString().padStart(2, '0')}`;
-
-        // Trigger counter animations for results
-        setTimeout(() => this.animateCounters(), 100);
+    calculateConsistency() {
+        if (this.wpmHistory.length < 2) return 100;
+        const avg = this.wpmHistory.reduce((a, b) => a + b, 0) / this.wpmHistory.length;
+        const variance = this.wpmHistory.reduce((sum, wpm) => sum + Math.pow(wpm - avg, 2), 0) / this.wpmHistory.length;
+        const stdDev = Math.sqrt(variance);
+        return Math.max(0, Math.min(100, Math.round(100 - (stdDev / avg) * 100)));
     }
 
-    // Modern Counter Animation
-    animateCounters() {
-        document.querySelectorAll('.counter').forEach(counter => {
-            const target = +counter.getAttribute('data-target') || +counter.textContent.replace('%', '');
-            const duration = 1500; // ms
-            const increment = target / (duration / 16); // 60fps
-            
-            let current = 0;
-            const updateCounter = () => {
-                current += increment;
-                if (current < target) {
-                    counter.textContent = Math.ceil(current) + (counter.id.includes('Accuracy') ? '%' : '');
-                    requestAnimationFrame(updateCounter);
-                } else {
-                    counter.textContent = target + (counter.id.includes('Accuracy') ? '%' : '');
+    showResults(results) {
+        document.getElementById('resultWPM').textContent = results.wpm;
+        document.getElementById('resultAcc').textContent = results.acc + '%';
+        document.getElementById('resultType').textContent = `time ${this.currentTime}`;
+        document.getElementById('resultRaw').textContent = results.raw;
+        document.getElementById('resultChars').textContent = 
+            `${results.correctChars}/${results.incorrectChars}/0/0`;
+        document.getElementById('resultCons').textContent = results.consistency + '%';
+        
+        const mins = Math.floor(results.time / 60);
+        const secs = results.time % 60;
+        document.getElementById('resultTime').textContent = 
+            `${mins}:${secs.toString().padStart(2, '0')}`;
+        
+        this.drawChart(results);
+    }
+
+    drawChart(results) {
+        const ctx = document.getElementById('wpmChart').getContext('2d');
+        
+        if (window.wpmChart) {
+            window.wpmChart.destroy();
+        }
+        
+        const isDark = !document.body.classList.contains('light-mode');
+        
+        window.wpmChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: this.wpmHistory.map((_, i) => i + 1),
+                datasets: [{
+                    label: 'WPM',
+                    data: this.wpmHistory,
+                    borderColor: '#e2b714',
+                    backgroundColor: 'rgba(226, 183, 20, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: isDark ? '#323437' : '#e0e0e0' },
+                        ticks: { color: isDark ? '#646669' : '#777' }
+                    },
+                    y: {
+                        grid: { color: isDark ? '#323437' : '#e0e0e0' },
+                        ticks: { color: isDark ? '#646669' : '#777' }
+                    }
                 }
-            };
-            updateCounter();
+            }
         });
     }
 
     addToStats(results) {
         this.stats.tests.push(results);
-        this.stats.totalTests++;
         if (results.wpm > this.stats.bestWPM) this.stats.bestWPM = results.wpm;
         localStorage.setItem('typingStats', JSON.stringify(this.stats));
-        this.updateQuickStats();
+        this.updateHomeStats();
     }
 
     loadStats() {
-        return JSON.parse(localStorage.getItem('typingStats')) || { tests: [], bestWPM: 0, totalTests: 0 };
+        return JSON.parse(localStorage.getItem('typingStats')) || { 
+            tests: [], 
+            bestWPM: 0 
+        };
     }
 
-    updateQuickStats() {
-        document.getElementById('bestWPM').textContent = this.stats.bestWPM;
-        document.getElementById('totalTests').textContent = this.stats.totalTests;
-        const avg = this.stats.totalTests > 0 ? Math.round(this.stats.tests.reduce((a, b) => a + b.accuracy, 0) / this.stats.totalTests) : 0;
-        document.getElementById('avgAccuracy').textContent = avg + '%';
+    updateHomeStats() {
+        document.getElementById('homeBestWPM').textContent = this.stats.bestWPM;
+        document.getElementById('homeTotalTests').textContent = this.stats.tests.length;
+        
+        if (this.stats.tests.length > 0) {
+            const avg = this.stats.tests.reduce((sum, t) => sum + t.acc, 0) / this.stats.tests.length;
+            document.getElementById('homeAvgAcc').textContent = Math.round(avg) + '%';
+        }
     }
 
     loadStatistics() {
-        document.getElementById('statBestWPM').textContent = this.stats.bestWPM;
-        const avgWPM = this.stats.tests.length > 0 ? Math.round(this.stats.tests.reduce((sum, t) => sum + t.wpm, 0) / this.stats.tests.length) : 0;
-        document.getElementById('statAvgWPM').textContent = avgWPM;
-        const bestAcc = this.stats.tests.length > 0 ? Math.max(...this.stats.tests.map(t => t.accuracy)) : 0;
-        document.getElementById('statBestAccuracy').textContent = bestAcc + '%';
+        const tests = this.stats.tests;
         
-        const totalTime = this.stats.tests.reduce((sum, t) => sum + t.duration, 0);
-        document.getElementById('statTotalTime').textContent = Math.round(totalTime / 60) + 'm';
-
-        const list = document.getElementById('recentTestsList');
-        if (this.stats.tests.length === 0) {
-            list.innerHTML = '<p class="empty-state">No tests completed yet. Start typing!</p>';
-        } else {
-            list.innerHTML = this.stats.tests.slice(-10).reverse().map(t => `
-                <div class="test-item">
-                    <div class="test-info">
-                        <div class="test-wpm">${t.wpm} WPM</div>
-                        <div class="test-meta">${t.language === 'en' ? 'English' : 'বাংলা'} • ${t.difficulty} • ${new Date(t.timestamp).toLocaleDateString()}</div.
-                    </div>
-                    <div class="test-accuracy">${t.accuracy}%</div>
-                </div>
-            `).join('');
+        document.getElementById('statBestWPM').textContent = this.stats.bestWPM;
+        
+        if (tests.length > 0) {
+            const avgWPM = Math.round(tests.reduce((sum, t) => sum + t.wpm, 0) / tests.length);
+            const bestAcc = Math.max(...tests.map(t => t.acc));
+            const totalTime = Math.round(tests.reduce((sum, t) => sum + t.time, 0) / 60);
+            
+            document.getElementById('statAvgWPM').textContent = avgWPM;
+            document.getElementById('statBestAcc').textContent = bestAcc + '%';
+            document.getElementById('statTotalTime').textContent = totalTime + 'm';
         }
-        setTimeout(() => this.animateCounters(), 100);
+        
+        const container = document.getElementById('recentTests');
+        if (tests.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-sub); text-align: center;">No tests yet</p>';
+        } else {
+            container.innerHTML = '<h3>Recent Tests</h3>' + 
+                tests.slice(-10).reverse().map(t => `
+                    <div class="test-item">
+                        <div class="test-info">
+                            <div class="test-wpm">${t.wpm} WPM</div>
+                            <div class="test-meta">${t.language === 'en' ? 'English' : 'বাংলা'} • ${new Date(t.timestamp).toLocaleDateString()}</div>
+                        </div>
+                        <div class="test-acc">${t.acc}%</div>
+                    </div>
+                `).join('');
+        }
     }
 
     restartTest() {
-        document.getElementById('typingInput').value = '';
-        this.userInput = '';
-        this.correctChars = 0;
-        this.incorrectChars = 0;
-        this.timeRemaining = this.totalTime;
-        this.displayText();
-        this.updateTimerDisplay();
-        document.getElementById('liveWPM').textContent = '0';
-        document.getElementById('liveAccuracy').textContent = '100%';
-        document.getElementById('liveErrors').textContent = '0';
-        document.getElementById('progressFill').style.width = '0%';
-        clearInterval(this.timerInterval);
-        this.startTimer();
-        document.getElementById('typingInput').focus();
+        this.navigateTo('practice');
+        setTimeout(() => this.startTest(), 300);
     }
 
-    clearStats() {
-        if (confirm('Are you sure you want to clear all statistics?')) {
-            this.stats = { tests: [], bestWPM: 0, totalTests: 0 };
-            localStorage.setItem('typingStats', JSON.stringify(this.stats));
-            this.updateQuickStats();
-            this.showToast('Statistics cleared', 'success');
-            this.loadStatistics();
-        }
+    newTest() {
+        this.navigateTo('practice');
+        document.getElementById('typingWrapper').style.display = 'none';
+        document.getElementById('focusPrompt').style.display = 'flex';
+    }
+
+    saveResult() {
+        this.showToast('Result saved!', 'success');
     }
 
     showToast(message, type = 'info') {
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️'}</span> ${message}`;
+        toast.textContent = message;
         container.appendChild(toast);
+        
         setTimeout(() => {
-            toast.style.animation = 'slideInRight 0.3s ease reverse forwards';
-            setTimeout(() => toast.remove(), 300);
+            toast.remove();
         }, 3000);
     }
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    window.app = new TypingApp();
-});
+// Initialize app
+const app = new TypingApp();
+window.app = app;
