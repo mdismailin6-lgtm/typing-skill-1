@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypeMaster Admin</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-text">TypeMaster Admin</span>
+            </div>
+            <button class="btn-secondary" onclick="window.location.href='index.html'">← Back</button>
+        </header>
+        
+        <div style="max-width: 800px; margin: 0 auto;">
+            <h2 style="margin-bottom: 2rem;">Add Content</h2>
+            
+            <div style="background: var(--bg-sub); padding: 2rem; border-radius: 1rem; margin-bottom: 2rem;">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-sub);">Type</label>
+                    <select id="contentType" style="width: 100%; padding: 0.75rem; background: var(--bg-main); border: 1px solid var(--text-muted); color: var(--text-main); border-radius: 0.5rem;">
+                        <option value="word">Word</option>
+                        <option value="sentence">Sentence</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-sub);">Language</label>
+                    <select id="contentLang" style="width: 100%; padding: 0.75rem; background: var(--bg-main); border: 1px solid var(--text-muted); color: var(--text-main); border-radius: 0.5rem;">
+                        <option value="en">English</option>
+                        <option value="bn">বাংলা</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-sub);">Content (one per line)</label>
+                    <textarea id="contentText" rows="6" style="width: 100%; padding: 0.75rem; background: var(--bg-main); border: 1px solid var(--text-muted); color: var(--text-main); border-radius: 0.5rem; font-family: var(--font-mono);" placeholder="word1&#10;word2&#10;word3"></textarea>
+                </div>
+                
+                <button class="btn-primary" onclick="addContent()" style="width: 100%;">Add Content</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { db, COLLECTIONS } from './firebase-config.js';
+        import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        
+        window.addContent = async function() {
+            const type = document.getElementById('contentType').value;
+            const language = document.getElementById('contentLang').value;
+            const text = document.getElementById('contentText').value.trim();
+            
+            if (!text) {
+                alert('Please enter content');
+                return;
+            }
+            
+            const lines = text.split('\n').filter(l => l.trim());
+            const collectionName = type === 'word' ? COLLECTIONS.TYPING_WORDS : COLLECTIONS.TYPING_SENTENCES;
+            
+            try {
+                for (const line of lines) {
+                    await addDoc(collection(db, collectionName), {
+                        [type === 'word' ? 'word' : 'text']: line.trim(),
+                        language,
+                        type,
+                        active: true,
+                        createdAt: new Date()
+                    });
+                }
+                alert(`Added ${lines.length} items successfully!`);
+                document.getElementById('contentText').value = '';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error adding content: ' + error.message);
+            }
+        };
+    </script>
+</body>
+</html>
